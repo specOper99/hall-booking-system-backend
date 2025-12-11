@@ -32,15 +32,15 @@ let UsersService = UsersService_1 = class UsersService {
         await this.seedSuperadmin();
     }
     async seedSuperadmin() {
-        const existingSuperadmin = await this.findByRole(user_role_enum_js_1.UserRole.SUPERADMIN);
-        if (existingSuperadmin) {
-            this.logger.log('Superadmin already exists, skipping seed');
-            return;
-        }
-        const email = this.configService.get('SUPERADMIN_EMAIL', 'admin@hallhub.com');
-        const password = this.configService.get('SUPERADMIN_PASSWORD', 'Admin@123456');
-        const fullName = this.configService.get('SUPERADMIN_NAME', 'Super Admin');
         try {
+            const existingSuperadmin = await this.findByRole(user_role_enum_js_1.UserRole.SUPERADMIN);
+            if (existingSuperadmin) {
+                this.logger.log('Superadmin already exists, skipping seed');
+                return;
+            }
+            const email = this.configService.get('SUPERADMIN_EMAIL', 'admin@hallhub.com');
+            const password = this.configService.get('SUPERADMIN_PASSWORD', 'Admin@123456');
+            const fullName = this.configService.get('SUPERADMIN_NAME', 'Super Admin');
             const superadmin = await this.create({
                 email,
                 password,
@@ -51,6 +51,14 @@ let UsersService = UsersService_1 = class UsersService {
             this.logger.log(`✅ Superadmin created successfully with email: ${superadmin.email}`);
         }
         catch (error) {
+            if (error?.driverError?.code === '42P01' || error?.code === '42P01') {
+                this.logger.warn('⚠️ Users table does not exist yet. Run migrations first. Skipping superadmin seed.');
+                return;
+            }
+            if (error?.code === '23505') {
+                this.logger.log('Superadmin already exists, skipping seed');
+                return;
+            }
             this.logger.error('Failed to create superadmin:', error);
         }
     }

@@ -7,9 +7,17 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { HallsService } from '../halls/halls.service.js';
-import { CreateBookingDto, UpdateBookingStatusDto } from './dto/index.js';
+import { BookingQueryDto, CreateBookingDto, UpdateBookingStatusDto } from './dto/index.js';
 import { Booking } from './entities/booking.entity.js';
 import { BookingStatus } from './enums/booking-status.enum.js';
+
+export interface PaginatedBookings {
+    data: Booking[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}
 
 @Injectable()
 export class BookingsService {
@@ -89,6 +97,52 @@ export class BookingsService {
             order: { startTime: 'ASC' },
         });
     }
+
+    async findAllForOwner(
+        ownerId: string,
+        query: BookingQueryDto,
+    ): Promise<PaginatedBookings> {
+        const qb = this.bookingRepository
+            .createQueryBuilder('booking')
+            .innerJoinAndSelect('booking.hall', 'hall')
+            .innerJoinAndSelect('hall.venue', 'venue')
+            .leftJoinAndSelect('booking.user', 'user')
+            .where('venue.ownerId = :ownerId', { ownerId });
+
+        // Apply filters
+        if (query.venueId) {
+            qb.andWhere('venue.id = :venueId', { venueId: query.venueId });
+        }
+        if (query.hallId) {
+            qb.andWhere('hall.id = :hallId', { hallId: query.hallId });
+        }
+        if (query.status) {
+            qb.andWhere('booking.status = :status', { status: query.status });
+        }
+        if (query.startDate) {
+            qb.andWhere('booking.startTime >= :startDate', {
+                startDate: new Date(query.startDate),
+            });
+        }
+        if (query.endDate) {
+            qb.andWhere('booking.endTime <= :endDate', {
+                endDate: new Date(query.endDate),
+            });
+        }
+
+        qb.orderBy('booking.startTime', 'DESC');
+
+        const [data, total] = await qb.getManyAndCount();
+
+        return {
+            data,
+            total,
+            page: 1,
+            limit: total,
+            totalPages: 1,
+        };
+    }
+
 
     async findByUser(userId: string): Promise<Booking[]> {
         return this.bookingRepository.find({

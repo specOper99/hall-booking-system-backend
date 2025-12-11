@@ -6,6 +6,7 @@ import {
     ParseUUIDPipe,
     Patch,
     Post,
+    Query,
     UseGuards,
 } from '@nestjs/common';
 import {
@@ -20,14 +21,27 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { User } from '../users/entities/user.entity.js';
 import { UserRole } from '../users/enums/user-role.enum.js';
-import { BookingsService } from './bookings.service.js';
-import { CreateBookingDto, UpdateBookingStatusDto } from './dto/index.js';
+import { BookingsService, PaginatedBookings } from './bookings.service.js';
+import { BookingQueryDto, CreateBookingDto, UpdateBookingStatusDto } from './dto/index.js';
 import { Booking } from './entities/booking.entity.js';
 
 @ApiTags('Bookings')
 @Controller('bookings')
 export class BookingsController {
     constructor(private readonly bookingsService: BookingsService) { }
+
+    @Get()
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.OWNER, UserRole.SUPERADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get all bookings for owner venues' })
+    @ApiResponse({ status: 200, description: 'Returns paginated bookings' })
+    async findAll(
+        @CurrentUser() user: User,
+        @Query() query: BookingQueryDto,
+    ): Promise<PaginatedBookings> {
+        return this.bookingsService.findAllForOwner(user.id, query);
+    }
 
     @Post()
     @UseGuards(JwtAuthGuard)

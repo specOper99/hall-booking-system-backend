@@ -63,6 +63,7 @@ exports.AppModule = AppModule = __decorate([
             bookings_module_js_1.BookingsModule,
             uploads_module_js_1.UploadsModule,
             dashboard_module_js_1.DashboardModule,
+            AdminModule,
         ],
         controllers: [app_controller_js_1.AppController],
         providers: [app_service_js_1.AppService],

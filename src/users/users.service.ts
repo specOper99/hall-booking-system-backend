@@ -20,18 +20,31 @@ export class UsersService implements OnModuleInit {
     }
 
     private async seedSuperadmin(): Promise<void> {
-        const existingSuperadmin = await this.findByRole(UserRole.SUPERADMIN);
-
-        if (existingSuperadmin) {
-            this.logger.log('Superadmin already exists, skipping seed');
-            return;
-        }
-
-        const email = this.configService.get<string>('SUPERADMIN_EMAIL', 'admin@hallhub.com');
-        const password = this.configService.get<string>('SUPERADMIN_PASSWORD', 'Admin@123456');
-        const fullName = this.configService.get<string>('SUPERADMIN_NAME', 'Super Admin');
-
         try {
+            // First check if the table exists by trying a simple query
+            // This query will fail fast if the table doesn't exist
+            let existingSuperadmin: User | null = null;
+
+            try {
+                existingSuperadmin = await this.findByRole(UserRole.SUPERADMIN);
+            } catch (queryError: any) {
+                // Handle case where table doesn't exist yet (error code 42P01)
+                if (queryError?.driverError?.code === '42P01' || queryError?.code === '42P01') {
+                    this.logger.warn('⚠️ Users table does not exist yet. Run migrations or enable synchronize. Skipping superadmin seed.');
+                    return;
+                }
+                throw queryError; // Re-throw other errors
+            }
+
+            if (existingSuperadmin) {
+                this.logger.log('Superadmin already exists, skipping seed');
+                return;
+            }
+
+            const email = this.configService.get<string>('SUPERADMIN_EMAIL', 'admin@hallhub.com');
+            const password = this.configService.get<string>('SUPERADMIN_PASSWORD', 'Admin@123456');
+            const fullName = this.configService.get<string>('SUPERADMIN_NAME', 'Super Admin');
+
             const superadmin = await this.create({
                 email,
                 password,
@@ -41,8 +54,13 @@ export class UsersService implements OnModuleInit {
             });
 
             this.logger.log(`✅ Superadmin created successfully with email: ${superadmin.email}`);
-        } catch (error) {
-            this.logger.error('Failed to create superadmin:', error);
+        } catch (error: any) {
+            // Handle duplicate email error (superadmin already exists)
+            if (error?.code === '23505') {
+                this.logger.log('Superadmin already exists, skipping seed');
+                return;
+            }
+            this.logger.error('Failed to create superadmin:', error.message || error);
         }
     }
 

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AdminModule } from './admin/admin.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -27,11 +28,16 @@ import { VenuesModule } from './venues/venues.module.js';
 
         // Support DATABASE_URL for production (Railway, Render, etc.)
         if (databaseUrl) {
+          // Allow DB_SYNC=true for initial schema creation, then set to false
+          const shouldSync = configService.get<string>('DB_SYNC', 'false') === 'true';
+          if (shouldSync) {
+            console.log('⚠️ DB_SYNC is enabled - schema will be synchronized. Disable after initial setup!');
+          }
           return {
             type: 'postgres',
             url: databaseUrl,
             autoLoadEntities: true,
-            synchronize: false, // Never sync in production
+            synchronize: shouldSync,
             ssl: { rejectUnauthorized: false },
           };
         }
@@ -60,6 +66,7 @@ import { VenuesModule } from './venues/venues.module.js';
     BookingsModule,
     UploadsModule,
     DashboardModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

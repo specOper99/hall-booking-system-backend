@@ -9,6 +9,13 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity.js';
 
+export enum VenueStatus {
+    PENDING = 'pending',
+    ACTIVE = 'active',
+    REJECTED = 'rejected',
+    SUSPENDED = 'suspended',
+}
+
 @Entity('venues')
 export class Venue {
     @PrimaryGeneratedColumn('uuid')
@@ -33,6 +40,16 @@ export class Venue {
     @Column('simple-array', { nullable: true })
     images!: string[];
 
+    @Column({
+        type: 'enum',
+        enum: VenueStatus,
+        default: VenueStatus.PENDING,
+    })
+    status!: VenueStatus;
+
+    @Column({ type: 'text', nullable: true })
+    rejectionReason?: string;
+
     @CreateDateColumn()
     createdAt!: Date;
 
@@ -42,3 +59,4 @@ export class Venue {
     // Halls relation will be added when Hall entity is created
     halls?: unknown[];
 }
+
