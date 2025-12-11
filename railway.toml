@@ -3,17 +3,16 @@
 
 [build]
 builder = "nixpacks"
+buildCommand = "npm run build"
 
 [build.nixpacksPlan]
 providers = ["node"]
-
-[build.buildCommand]
-"npm run build"
 
 [deploy]
 startCommand = "npm run start:prod"
 healthcheckPath = "/api/v1"
 healthcheckTimeout = 100
 
-[deploy.env]
+[[deploy.env]]
 NODE_ENV = "production"
+
