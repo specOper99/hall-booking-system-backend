@@ -38,26 +38,26 @@ async function seed() {
 
     // Check if data already exists
     const existingUsers = await userRepo.count();
-    if (existingUsers > 1) {
+
+    // Create password hash
+    const passwordHash = await bcrypt.hash('Password123!', 10);
+    if (existingUsers == 0) {
+        // 1. Create Users
+        const superadmin = await userRepo.save({
+            email: 'admin@hallhub.com',
+            password: passwordHash,
+            fullName: 'System Administrator',
+            role: UserRole.SUPERADMIN,
+            isActive: true,
+        });
+        console.log('✅ Created superadmin user');
+    } else if (existingUsers > 1) {
         console.log('⚠️  Database already has data. Skipping seed.');
         await dataSource.destroy();
         return;
     }
 
     console.log('🌱 Seeding database...');
-
-    // Create password hash
-    const passwordHash = await bcrypt.hash('Password123!', 10);
-
-    // 1. Create Users
-    const superadmin = await userRepo.save({
-        email: 'admin@hallhub.com',
-        password: passwordHash,
-        fullName: 'System Administrator',
-        role: UserRole.SUPERADMIN,
-        isActive: true,
-    });
-    console.log('✅ Created superadmin user');
 
     const owner1 = await userRepo.save({
         email: 'john.owner@email.com',
