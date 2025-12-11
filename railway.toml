@@ -1,0 +1,19 @@
+# Railway.app Configuration
+# Deploy: railway login → railway init → railway up
+
+[build]
+builder = "nixpacks"
+
+[build.nixpacksPlan]
+providers = ["node"]
+
+[build.buildCommand]
+"npm run build"
+
+[deploy]
+startCommand = "npm run start:prod"
+healthcheckPath = "/api/v1"
+healthcheckTimeout = 100
+
+[deploy.env]
+NODE_ENV = "production"

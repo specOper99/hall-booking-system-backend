@@ -1,0 +1,48 @@
+# Render.com Configuration
+# Deploy: Connect GitHub repo → Select "Web Service"
+# Build Command: npm install && npm run build
+# Start Command: npm run start:prod
+
+services:
+  - type: web
+    name: hallhub-api
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/v1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DB_HOST
+        fromDatabase:
+          name: hallhub-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: hallhub-db
+          property: port
+      - key: DB_USERNAME
+        fromDatabase:
+          name: hallhub-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: hallhub-db
+          property: password
+      - key: DB_DATABASE
+        fromDatabase:
+          name: hallhub-db
+          property: database
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: 7d
+
+databases:
+  - name: hallhub-db
+    plan: free
+    databaseName: hallhub
+    user: hallhub_user
