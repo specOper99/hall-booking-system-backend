@@ -76,6 +76,42 @@ let BookingsService = class BookingsService {
             order: { startTime: 'ASC' },
         });
     }
+    async findAllForOwner(ownerId, query) {
+        const qb = this.bookingRepository
+            .createQueryBuilder('booking')
+            .innerJoinAndSelect('booking.hall', 'hall')
+            .innerJoinAndSelect('hall.venue', 'venue')
+            .leftJoinAndSelect('booking.user', 'user')
+            .where('venue.ownerId = :ownerId', { ownerId });
+        if (query.venueId) {
+            qb.andWhere('venue.id = :venueId', { venueId: query.venueId });
+        }
+        if (query.hallId) {
+            qb.andWhere('hall.id = :hallId', { hallId: query.hallId });
+        }
+        if (query.status) {
+            qb.andWhere('booking.status = :status', { status: query.status });
+        }
+        if (query.startDate) {
+            qb.andWhere('booking.startTime >= :startDate', {
+                startDate: new Date(query.startDate),
+            });
+        }
+        if (query.endDate) {
+            qb.andWhere('booking.endTime <= :endDate', {
+                endDate: new Date(query.endDate),
+            });
+        }
+        qb.orderBy('booking.startTime', 'DESC');
+        const [data, total] = await qb.getManyAndCount();
+        return {
+            data,
+            total,
+            page: 1,
+            limit: total,
+            totalPages: 1,
+        };
+    }
     async findByUser(userId) {
         return this.bookingRepository.find({
             where: { userId },

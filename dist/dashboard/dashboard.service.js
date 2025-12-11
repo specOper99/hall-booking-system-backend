@@ -60,16 +60,21 @@ let DashboardService = class DashboardService {
             select: ['id'],
         });
         const venueIds = venues.map((v) => v.id);
+        const emptyStats = {
+            totalBookings: 0,
+            totalRevenue: 0,
+            pendingRequests: 0,
+            occupancyRate: 0,
+            totalVenues: venueIds.length,
+            totalHalls: 0,
+            confirmedBookings: 0,
+            revenueByMonth: this.getEmptyRevenueByMonth(),
+            bookingsByStatus: { confirmed: 0, cancelled: 0, pending: 0, completed: 0 },
+            recentActivity: [],
+            mostPopularHall: null,
+        };
         if (venueIds.length === 0) {
-            return {
-                totalVenues: 0,
-                totalHalls: 0,
-                totalBookings: 0,
-                totalRevenue: 0,
-                confirmedBookings: 0,
-                pendingBookings: 0,
-                mostPopularHall: null,
-            };
+            return emptyStats;
         }
         const totalHalls = await this.hallRepository
             .createQueryBuilder('hall')
@@ -81,15 +86,7 @@ let DashboardService = class DashboardService {
         });
         const hallIds = halls.map((h) => h.id);
         if (hallIds.length === 0) {
-            return {
-                totalVenues: venueIds.length,
-                totalHalls: 0,
-                totalBookings: 0,
-                totalRevenue: 0,
-                confirmedBookings: 0,
-                pendingBookings: 0,
-                mostPopularHall: null,
-            };
+            return { ...emptyStats, totalHalls: 0 };
         }
         const bookingStats = await this.bookingRepository
             .createQueryBuilder('booking')
@@ -98,7 +95,52 @@ let DashboardService = class DashboardService {
             .addSelect(`SUM(CASE WHEN status = '${booking_status_enum_js_1.BookingStatus.CONFIRMED}' OR status = '${booking_status_enum_js_1.BookingStatus.COMPLETED}' THEN "totalPrice" ELSE 0 END)`, 'revenue')
             .addSelect(`SUM(CASE WHEN status = '${booking_status_enum_js_1.BookingStatus.CONFIRMED}' THEN 1 ELSE 0 END)`, 'confirmed')
             .addSelect(`SUM(CASE WHEN status = '${booking_status_enum_js_1.BookingStatus.PENDING}' THEN 1 ELSE 0 END)`, 'pending')
+            .addSelect(`SUM(CASE WHEN status = '${booking_status_enum_js_1.BookingStatus.CANCELLED}' THEN 1 ELSE 0 END)`, 'cancelled')
+            .addSelect(`SUM(CASE WHEN status = '${booking_status_enum_js_1.BookingStatus.COMPLETED}' THEN 1 ELSE 0 END)`, 'completed')
             .getRawOne();
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+        sixMonthsAgo.setDate(1);
+        sixMonthsAgo.setHours(0, 0, 0, 0);
+        const revenueByMonthData = await this.bookingRepository
+            .createQueryBuilder('booking')
+            .where('booking.hallId IN (:...hallIds)', { hallIds })
+            .andWhere('booking.status IN (:...statuses)', {
+            statuses: [booking_status_enum_js_1.BookingStatus.CONFIRMED, booking_status_enum_js_1.BookingStatus.COMPLETED],
+        })
+            .andWhere('booking.createdAt >= :sixMonthsAgo', { sixMonthsAgo })
+            .select("TO_CHAR(booking.createdAt, 'Mon')", 'month')
+            .addSelect('SUM(booking.totalPrice)', 'revenue')
+            .groupBy("TO_CHAR(booking.createdAt, 'Mon')")
+            .addGroupBy("TO_CHAR(booking.createdAt, 'YYYY-MM')")
+            .orderBy("TO_CHAR(booking.createdAt, 'YYYY-MM')", 'ASC')
+            .getRawMany();
+        const revenueByMonth = this.fillRevenueByMonth(revenueByMonthData);
+        const recentBookings = await this.bookingRepository
+            .createQueryBuilder('booking')
+            .innerJoin('booking.hall', 'hall')
+            .innerJoin('booking.user', 'user')
+            .where('booking.hallId IN (:...hallIds)', { hallIds })
+            .select([
+            'booking.id',
+            'booking.status',
+            'booking.createdAt',
+            'hall.name',
+            'user.fullName',
+        ])
+            .orderBy('booking.createdAt', 'DESC')
+            .limit(5)
+            .getMany();
+        const recentActivity = recentBookings.map((b) => ({
+            id: b.id,
+            type: this.getActivityType(b.status),
+            title: this.getActivityTitle(b.status, b.user?.fullName || 'Unknown'),
+            description: `${b.hall?.name || 'Hall'} - ${new Date(b.createdAt).toLocaleDateString()}`,
+            timestamp: b.createdAt.toISOString(),
+            status: b.status === booking_status_enum_js_1.BookingStatus.PENDING ? 'pending'
+                : b.status === booking_status_enum_js_1.BookingStatus.CONFIRMED ? 'confirmed'
+                    : 'cancelled',
+        }));
         const popularHall = await this.bookingRepository
             .createQueryBuilder('booking')
             .innerJoin('booking.hall', 'hall')
@@ -114,13 +156,38 @@ let DashboardService = class DashboardService {
             .orderBy('"bookingCount"', 'DESC')
             .limit(1)
             .getRawOne();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const confirmedBookingsHours = await this.bookingRepository
+            .createQueryBuilder('booking')
+            .where('booking.hallId IN (:...hallIds)', { hallIds })
+            .andWhere('booking.status IN (:...statuses)', {
+            statuses: [booking_status_enum_js_1.BookingStatus.CONFIRMED, booking_status_enum_js_1.BookingStatus.COMPLETED],
+        })
+            .andWhere('booking.startTime >= :thirtyDaysAgo', { thirtyDaysAgo })
+            .select('SUM(EXTRACT(EPOCH FROM (booking.endTime - booking.startTime)) / 3600)', 'totalHours')
+            .getRawOne();
+        const totalHours = Number(confirmedBookingsHours?.totalHours) || 0;
+        const totalAvailableHours = hallIds.length * 12 * 30;
+        const occupancyRate = totalAvailableHours > 0
+            ? Math.round((totalHours / totalAvailableHours) * 100)
+            : 0;
         return {
-            totalVenues: venueIds.length,
-            totalHalls,
             totalBookings: Number(bookingStats?.total) || 0,
             totalRevenue: Number(bookingStats?.revenue) || 0,
+            pendingRequests: Number(bookingStats?.pending) || 0,
+            occupancyRate,
+            totalVenues: venueIds.length,
+            totalHalls,
             confirmedBookings: Number(bookingStats?.confirmed) || 0,
-            pendingBookings: Number(bookingStats?.pending) || 0,
+            revenueByMonth,
+            bookingsByStatus: {
+                confirmed: Number(bookingStats?.confirmed) || 0,
+                cancelled: Number(bookingStats?.cancelled) || 0,
+                pending: Number(bookingStats?.pending) || 0,
+                completed: Number(bookingStats?.completed) || 0,
+            },
+            recentActivity,
             mostPopularHall: popularHall
                 ? {
                     id: popularHall.id,
@@ -129,6 +196,48 @@ let DashboardService = class DashboardService {
                 }
                 : null,
         };
+    }
+    getEmptyRevenueByMonth() {
+        const months = [];
+        const now = new Date();
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push({
+                month: date.toLocaleString('en-US', { month: 'short' }),
+                revenue: 0,
+            });
+        }
+        return months;
+    }
+    fillRevenueByMonth(data) {
+        const months = this.getEmptyRevenueByMonth();
+        data.forEach((item) => {
+            const idx = months.findIndex((m) => m.month === item.month);
+            if (idx !== -1) {
+                months[idx].revenue = Number(item.revenue) || 0;
+            }
+        });
+        return months;
+    }
+    getActivityType(status) {
+        switch (status) {
+            case booking_status_enum_js_1.BookingStatus.CONFIRMED:
+                return 'booking_confirmed';
+            case booking_status_enum_js_1.BookingStatus.CANCELLED:
+                return 'booking_cancelled';
+            default:
+                return 'booking_created';
+        }
+    }
+    getActivityTitle(status, userName) {
+        switch (status) {
+            case booking_status_enum_js_1.BookingStatus.CONFIRMED:
+                return 'Booking confirmed';
+            case booking_status_enum_js_1.BookingStatus.CANCELLED:
+                return 'Booking cancelled';
+            default:
+                return `New booking from ${userName}`;
+        }
     }
 };
 exports.DashboardService = DashboardService;

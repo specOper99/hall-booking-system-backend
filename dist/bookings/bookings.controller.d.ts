@@ -1,10 +1,11 @@
 import { User } from '../users/entities/user.entity.js';
-import { BookingsService } from './bookings.service.js';
-import { CreateBookingDto, UpdateBookingStatusDto } from './dto/index.js';
+import { BookingsService, PaginatedBookings } from './bookings.service.js';
+import { BookingQueryDto, CreateBookingDto, UpdateBookingStatusDto } from './dto/index.js';
 import { Booking } from './entities/booking.entity.js';
 export declare class BookingsController {
     private readonly bookingsService;
     constructor(bookingsService: BookingsService);
+    findAll(user: User, query: BookingQueryDto): Promise<PaginatedBookings>;
     create(user: User, createBookingDto: CreateBookingDto): Promise<Booking>;
     findMyBookings(user: User): Promise<Booking[]>;
     findByHall(hallId: string): Promise<Booking[]>;

@@ -1,0 +1,280 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+const config_1 = require("@nestjs/config");
+const bcrypt = __importStar(require("bcrypt"));
+const dotenv_1 = require("dotenv");
+const typeorm_1 = require("typeorm");
+const platform_settings_entity_js_1 = require("../admin/entities/platform-settings.entity.js");
+const booking_entity_js_1 = require("../bookings/entities/booking.entity.js");
+const booking_status_enum_js_1 = require("../bookings/enums/booking-status.enum.js");
+const hall_entity_js_1 = require("../halls/entities/hall.entity.js");
+const user_entity_js_1 = require("../users/entities/user.entity.js");
+const user_role_enum_js_1 = require("../users/enums/user-role.enum.js");
+const venue_entity_js_1 = require("../venues/entities/venue.entity.js");
+(0, dotenv_1.config)();
+const configService = new config_1.ConfigService();
+async function seed() {
+    const dataSource = new typeorm_1.DataSource({
+        type: 'postgres',
+        host: configService.get('DB_HOST', 'localhost'),
+        port: configService.get('DB_PORT', 5433),
+        username: configService.get('DB_USERNAME', 'postgres'),
+        password: configService.get('DB_PASSWORD', 'postgres'),
+        database: configService.get('DB_DATABASE', 'hallhub'),
+        entities: [user_entity_js_1.User, venue_entity_js_1.Venue, hall_entity_js_1.Hall, booking_entity_js_1.Booking, platform_settings_entity_js_1.PlatformSettings],
+        synchronize: true,
+    });
+    await dataSource.initialize();
+    console.log('🔗 Database connected');
+    const userRepo = dataSource.getRepository(user_entity_js_1.User);
+    const venueRepo = dataSource.getRepository(venue_entity_js_1.Venue);
+    const hallRepo = dataSource.getRepository(hall_entity_js_1.Hall);
+    const bookingRepo = dataSource.getRepository(booking_entity_js_1.Booking);
+    const settingsRepo = dataSource.getRepository(platform_settings_entity_js_1.PlatformSettings);
+    const existingUsers = await userRepo.count();
+    if (existingUsers > 0) {
+        console.log('⚠️  Database already has data. Skipping seed.');
+        await dataSource.destroy();
+        return;
+    }
+    console.log('🌱 Seeding database...');
+    const passwordHash = await bcrypt.hash('Password123!', 10);
+    const superadmin = await userRepo.save({
+        email: 'admin@hallhub.com',
+        password: passwordHash,
+        fullName: 'System Administrator',
+        role: user_role_enum_js_1.UserRole.SUPERADMIN,
+        isActive: true,
+    });
+    console.log('✅ Created superadmin user');
+    const owner1 = await userRepo.save({
+        email: 'john.owner@email.com',
+        password: passwordHash,
+        fullName: 'John Smith',
+        role: user_role_enum_js_1.UserRole.OWNER,
+        isActive: true,
+    });
+    const owner2 = await userRepo.save({
+        email: 'sarah.owner@email.com',
+        password: passwordHash,
+        fullName: 'Sarah Johnson',
+        role: user_role_enum_js_1.UserRole.OWNER,
+        isActive: true,
+    });
+    const manager = await userRepo.save({
+        email: 'mike.manager@email.com',
+        password: passwordHash,
+        fullName: 'Mike Wilson',
+        role: user_role_enum_js_1.UserRole.MANAGER,
+        isActive: true,
+    });
+    const customer1 = await userRepo.save({
+        email: 'emily.customer@email.com',
+        password: passwordHash,
+        fullName: 'Emily Davis',
+        role: user_role_enum_js_1.UserRole.USER,
+        isActive: true,
+    });
+    const customer2 = await userRepo.save({
+        email: 'david.customer@email.com',
+        password: passwordHash,
+        fullName: 'David Brown',
+        role: user_role_enum_js_1.UserRole.USER,
+        isActive: true,
+    });
+    const customer3 = await userRepo.save({
+        email: 'jennifer.customer@email.com',
+        password: passwordHash,
+        fullName: 'Jennifer Lee',
+        role: user_role_enum_js_1.UserRole.USER,
+        isActive: false,
+    });
+    console.log('✅ Created 7 users (1 superadmin, 2 owners, 1 manager, 3 customers)');
+    const venue1 = await venueRepo.save({
+        ownerId: owner1.id,
+        name: 'Grand Conference Center',
+        description: 'Premium conference and event space in the heart of downtown. Features modern amenities and stunning city views.',
+        address: '123 Business District, Downtown',
+        images: ['https://images.unsplash.com/photo-1497366216548-37526070297c'],
+        status: venue_entity_js_1.VenueStatus.ACTIVE,
+    });
+    const venue2 = await venueRepo.save({
+        ownerId: owner1.id,
+        name: 'Skyline Events Center',
+        description: 'Modern event venue with panoramic city views. Perfect for corporate events and celebrations.',
+        address: '100 Tower Street, Business District',
+        images: ['https://images.unsplash.com/photo-1540575467063-178a50c2df87'],
+        status: venue_entity_js_1.VenueStatus.ACTIVE,
+    });
+    const venue3 = await venueRepo.save({
+        ownerId: owner2.id,
+        name: 'Garden Paradise Hall',
+        description: 'Outdoor venue surrounded by nature. Ideal for weddings and intimate gatherings.',
+        address: '50 Botanical Gardens, Green Zone',
+        images: ['https://images.unsplash.com/photo-1464366400600-7168b8af9bc3'],
+        status: venue_entity_js_1.VenueStatus.ACTIVE,
+    });
+    const pendingVenue = await venueRepo.save({
+        ownerId: owner2.id,
+        name: 'Historic Manor House',
+        description: 'Elegant historic venue for weddings and celebrations.',
+        address: '25 Heritage Lane, Old Town',
+        images: [],
+        status: venue_entity_js_1.VenueStatus.PENDING,
+    });
+    console.log('✅ Created 4 venues (3 active, 1 pending)');
+    const hall1 = await hallRepo.save({
+        venueId: venue1.id,
+        name: 'Main Ballroom',
+        capacity: 300,
+        pricePerHour: 150,
+        amenities: { wifi: true, projector: true, soundSystem: true, stage: true, danceFloor: true },
+    });
+    const hall2 = await hallRepo.save({
+        venueId: venue1.id,
+        name: 'Executive Boardroom',
+        capacity: 20,
+        pricePerHour: 80,
+        amenities: { wifi: true, videoConferencing: true, whiteboard: true, coffeeMachine: true },
+    });
+    const hall3 = await hallRepo.save({
+        venueId: venue1.id,
+        name: 'Training Room A',
+        capacity: 50,
+        pricePerHour: 60,
+        amenities: { wifi: true, projector: true, flipcharts: true },
+    });
+    const hall4 = await hallRepo.save({
+        venueId: venue2.id,
+        name: 'Panorama Suite',
+        capacity: 100,
+        pricePerHour: 200,
+        amenities: { wifi: true, soundSystem: true, barArea: true, terraceAccess: true },
+    });
+    const hall5 = await hallRepo.save({
+        venueId: venue3.id,
+        name: 'Garden Pavilion',
+        capacity: 150,
+        pricePerHour: 120,
+        amenities: { outdoorSeating: true, gardenViews: true, lighting: true, soundSystem: true },
+    });
+    console.log('✅ Created 5 halls');
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    await bookingRepo.save({
+        hallId: hall1.id,
+        userId: customer1.id,
+        startTime: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000 + 10 * 60 * 60 * 1000),
+        endTime: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000),
+        status: booking_status_enum_js_1.BookingStatus.COMPLETED,
+        totalPrice: 600,
+    });
+    await bookingRepo.save({
+        hallId: hall2.id,
+        userId: customer2.id,
+        startTime: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000 + 9 * 60 * 60 * 1000),
+        endTime: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000 + 12 * 60 * 60 * 1000),
+        status: booking_status_enum_js_1.BookingStatus.COMPLETED,
+        totalPrice: 240,
+    });
+    await bookingRepo.save({
+        hallId: hall3.id,
+        userId: customer3.id,
+        startTime: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000 + 13 * 60 * 60 * 1000),
+        endTime: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000 + 17 * 60 * 60 * 1000),
+        status: booking_status_enum_js_1.BookingStatus.CANCELLED,
+        totalPrice: 240,
+    });
+    await bookingRepo.save({
+        hallId: hall1.id,
+        userId: customer1.id,
+        startTime: new Date(today.getTime() + 10 * 60 * 60 * 1000),
+        endTime: new Date(today.getTime() + 14 * 60 * 60 * 1000),
+        status: booking_status_enum_js_1.BookingStatus.CONFIRMED,
+        totalPrice: 600,
+    });
+    await bookingRepo.save({
+        hallId: hall1.id,
+        userId: customer2.id,
+        startTime: new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000 + 15 * 60 * 60 * 1000),
+        endTime: new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000 + 20 * 60 * 60 * 1000),
+        status: booking_status_enum_js_1.BookingStatus.PENDING,
+        totalPrice: 750,
+    });
+    await bookingRepo.save({
+        hallId: hall4.id,
+        userId: customer1.id,
+        startTime: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000 + 10 * 60 * 60 * 1000),
+        endTime: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000 + 16 * 60 * 60 * 1000),
+        status: booking_status_enum_js_1.BookingStatus.PENDING,
+        totalPrice: 1200,
+    });
+    await bookingRepo.save({
+        hallId: hall5.id,
+        userId: customer2.id,
+        startTime: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000),
+        endTime: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000 + 18 * 60 * 60 * 1000),
+        status: booking_status_enum_js_1.BookingStatus.PENDING,
+        totalPrice: 480,
+    });
+    await bookingRepo.save({
+        hallId: hall2.id,
+        userId: customer1.id,
+        startTime: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000 + 9 * 60 * 60 * 1000),
+        endTime: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000 + 12 * 60 * 60 * 1000),
+        status: booking_status_enum_js_1.BookingStatus.CONFIRMED,
+        totalPrice: 240,
+    });
+    console.log('✅ Created 8 bookings (2 completed, 1 cancelled, 2 confirmed, 3 pending)');
+    await settingsRepo.save({
+        commissionRate: 10,
+        maintenanceMode: false,
+        maxBookingsPerUser: 50,
+    });
+    console.log('✅ Created platform settings');
+    console.log('\n🎉 Database seeding completed successfully!\n');
+    console.log('📧 Login credentials (password: Password123!):');
+    console.log('   - Superadmin: admin@hallhub.com');
+    console.log('   - Owner: john.owner@email.com');
+    console.log('   - Owner: sarah.owner@email.com');
+    console.log('   - Customer: emily.customer@email.com\n');
+    await dataSource.destroy();
+}
+seed().catch((error) => {
+    console.error('❌ Seeding failed:', error);
+    process.exit(1);
+});
+//# sourceMappingURL=seed.js.map

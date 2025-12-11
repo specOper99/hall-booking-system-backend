@@ -10,6 +10,7 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const typeorm_1 = require("@nestjs/typeorm");
+const admin_module_js_1 = require("./admin/admin.module.js");
 const app_controller_js_1 = require("./app.controller.js");
 const app_service_js_1 = require("./app.service.js");
 const auth_module_js_1 = require("./auth/auth.module.js");
@@ -34,11 +35,15 @@ exports.AppModule = AppModule = __decorate([
                 useFactory: (configService) => {
                     const databaseUrl = configService.get('DATABASE_URL');
                     if (databaseUrl) {
+                        const shouldSync = configService.get('DB_SYNC', 'false') === 'true';
+                        if (shouldSync) {
+                            console.log('⚠️ DB_SYNC is enabled - schema will be synchronized. Disable after initial setup!');
+                        }
                         return {
                             type: 'postgres',
                             url: databaseUrl,
                             autoLoadEntities: true,
-                            synchronize: false,
+                            synchronize: shouldSync,
                             ssl: { rejectUnauthorized: false },
                         };
                     }
@@ -63,7 +68,7 @@ exports.AppModule = AppModule = __decorate([
             bookings_module_js_1.BookingsModule,
             uploads_module_js_1.UploadsModule,
             dashboard_module_js_1.DashboardModule,
-            AdminModule,
+            admin_module_js_1.AdminModule,
         ],
         controllers: [app_controller_js_1.AppController],
         providers: [app_service_js_1.AppService],

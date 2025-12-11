@@ -12,13 +12,35 @@ export interface SystemStats {
     confirmedBookings: number;
     pendingBookings: number;
 }
+export interface RevenueByMonth {
+    month: string;
+    revenue: number;
+}
+export interface BookingsByStatus {
+    confirmed: number;
+    cancelled: number;
+    pending: number;
+    completed: number;
+}
+export interface RecentActivityItem {
+    id: string;
+    type: 'booking_created' | 'booking_confirmed' | 'booking_cancelled' | 'venue_created';
+    title: string;
+    description: string;
+    timestamp: string;
+    status?: 'pending' | 'confirmed' | 'cancelled';
+}
 export interface OwnerStats {
-    totalVenues: number;
-    totalHalls: number;
     totalBookings: number;
     totalRevenue: number;
+    pendingRequests: number;
+    occupancyRate: number;
+    totalVenues: number;
+    totalHalls: number;
     confirmedBookings: number;
-    pendingBookings: number;
+    revenueByMonth: RevenueByMonth[];
+    bookingsByStatus: BookingsByStatus;
+    recentActivity: RecentActivityItem[];
     mostPopularHall: {
         id: string;
         name: string;
@@ -33,4 +55,8 @@ export declare class DashboardService {
     constructor(userRepository: Repository<User>, venueRepository: Repository<Venue>, hallRepository: Repository<Hall>, bookingRepository: Repository<Booking>);
     getSystemStats(): Promise<SystemStats>;
     getOwnerStats(ownerId: string): Promise<OwnerStats>;
+    private getEmptyRevenueByMonth;
+    private fillRevenueByMonth;
+    private getActivityType;
+    private getActivityTitle;
 }

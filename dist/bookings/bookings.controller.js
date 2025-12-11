@@ -28,6 +28,9 @@ let BookingsController = class BookingsController {
     constructor(bookingsService) {
         this.bookingsService = bookingsService;
     }
+    async findAll(user, query) {
+        return this.bookingsService.findAllForOwner(user.id, query);
+    }
     async create(user, createBookingDto) {
         return this.bookingsService.create(user.id, createBookingDto);
     }
@@ -48,6 +51,20 @@ let BookingsController = class BookingsController {
     }
 };
 exports.BookingsController = BookingsController;
+__decorate([
+    (0, common_1.Get)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_js_1.JwtAuthGuard, roles_guard_js_1.RolesGuard),
+    (0, roles_decorator_js_1.Roles)(user_role_enum_js_1.UserRole.OWNER, user_role_enum_js_1.UserRole.SUPERADMIN),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all bookings for owner venues' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Returns paginated bookings' }),
+    __param(0, (0, current_user_decorator_js_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [user_entity_js_1.User,
+        index_js_1.BookingQueryDto]),
+    __metadata("design:returntype", Promise)
+], BookingsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Post)(),
     (0, common_1.UseGuards)(jwt_auth_guard_js_1.JwtAuthGuard),
