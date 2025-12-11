@@ -38,7 +38,7 @@ async function seed() {
 
     // Check if data already exists
     const existingUsers = await userRepo.count();
-    if (existingUsers > 0) {
+    if (existingUsers > 1) {
         console.log('⚠️  Database already has data. Skipping seed.');
         await dataSource.destroy();
         return;
