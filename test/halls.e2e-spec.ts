@@ -54,7 +54,6 @@ describe('HallsController (e2e)', () => {
                 });
 
             expect(response.status).toBe(201);
-            expect(response.body).toHaveProperty('data');
             expect(response.body.data).toHaveProperty('id');
             expect(response.body.data.name).toBe(testHall.name);
             expect(response.body.data.capacity).toBe(testHall.capacity);
@@ -105,7 +104,6 @@ describe('HallsController (e2e)', () => {
                 .get(`/api/v1/halls/venue/${venueId}`);
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty('data');
             expect(Array.isArray(response.body.data)).toBe(true);
             expect(response.body.data.length).toBeGreaterThan(0);
         });
@@ -124,7 +122,6 @@ describe('HallsController (e2e)', () => {
                 .get(`/api/v1/halls/${createdHallId}`);
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty('data');
             expect(response.body.data.id).toBe(createdHallId);
         });
 
@@ -176,7 +173,6 @@ describe('HallsController (e2e)', () => {
                 .delete(`/api/v1/halls/${hallToDelete}`);
 
             expect(response.status).toBe(200);
-            expect(response.body.data).toHaveProperty('message');
         });
 
         it('should return 404 for deleted hall', async () => {

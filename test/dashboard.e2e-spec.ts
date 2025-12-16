@@ -30,7 +30,7 @@ describe('DashboardController (e2e)', () => {
                 .post('/api/v1/auth/login')
                 .send({
                     email: 'admin@hallhub.com',
-                    password: 'Admin123!',
+                    password: 'Admin@123456',
                 });
             if (loginResponse.status === 200) {
                 superadminToken = loginResponse.body.data.accessToken;

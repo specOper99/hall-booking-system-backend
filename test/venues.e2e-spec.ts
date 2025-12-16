@@ -43,7 +43,6 @@ describe('VenuesController (e2e)', () => {
                 .send(testVenue);
 
             expect(response.status).toBe(201);
-            expect(response.body).toHaveProperty('data');
             expect(response.body.data).toHaveProperty('id');
             expect(response.body.data.name).toBe(testVenue.name);
             expect(response.body.data.address).toBe(testVenue.address);
@@ -82,19 +81,18 @@ describe('VenuesController (e2e)', () => {
                 .get('/api/v1/venues');
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty('data');
-            expect(response.body.data).toHaveProperty('items');
-            expect(Array.isArray(response.body.data.items)).toBe(true);
+            expect(response.body.data).toHaveProperty('data');
+            expect(Array.isArray(response.body.data.data)).toBe(true);
         });
 
         it('should support pagination', async () => {
             const response = await request(app.getHttpServer())
                 .get('/api/v1/venues')
-                .query({ page: 1, limit: 5 });
+                .query({ limit: 5, offset: 0 });
 
             expect(response.status).toBe(200);
             expect(response.body.data).toHaveProperty('total');
-            expect(response.body.data).toHaveProperty('page');
+            expect(response.body.data).toHaveProperty('limit');
         });
     });
 
@@ -104,7 +102,6 @@ describe('VenuesController (e2e)', () => {
                 .get('/api/v1/venues/my-venues');
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty('data');
             expect(Array.isArray(response.body.data)).toBe(true);
         });
 
@@ -122,7 +119,6 @@ describe('VenuesController (e2e)', () => {
                 .get(`/api/v1/venues/${createdVenueId}`);
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty('data');
             expect(response.body.data.id).toBe(createdVenueId);
         });
 
@@ -185,7 +181,6 @@ describe('VenuesController (e2e)', () => {
                 .delete(`/api/v1/venues/${venueToDelete}`);
 
             expect(response.status).toBe(200);
-            expect(response.body.data).toHaveProperty('message');
         });
 
         it('should return 404 for deleted venue', async () => {

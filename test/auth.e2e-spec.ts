@@ -32,9 +32,9 @@ describe('AuthController (e2e)', () => {
                 });
 
             expect(response.status).toBe(201);
-            expect(response.body).toHaveProperty('accessToken');
-            expect(response.body).toHaveProperty('user');
-            expect(response.body.user.email).toBe(uniqueEmail);
+            expect(response.body.data).toHaveProperty('accessToken');
+            expect(response.body.data).toHaveProperty('user');
+            expect(response.body.data.user.email).toBe(uniqueEmail);
         });
 
         it('should return 400 for invalid email format', async () => {
@@ -64,10 +64,24 @@ describe('AuthController (e2e)', () => {
         });
 
         it('should return 409 for duplicate email', async () => {
+            // Use a specific email for this test
+            const duplicateTestEmail = `test-duplicate-${Date.now()}@test.com`;
+
+            // First, register the user
+            await request(app.getHttpServer())
+                .post('/api/v1/auth/register')
+                .send({
+                    email: duplicateTestEmail,
+                    password: 'Password123!',
+                    fullName: 'First User',
+                    role: 'USER',
+                });
+
+            // Now try to register with the same email
             const response = await request(app.getHttpServer())
                 .post('/api/v1/auth/register')
                 .send({
-                    email: uniqueEmail,
+                    email: duplicateTestEmail,
                     password: 'Password123!',
                     fullName: 'Duplicate User',
                     role: 'USER',
@@ -114,8 +128,8 @@ describe('AuthController (e2e)', () => {
                 });
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty('accessToken');
-            expect(response.body).toHaveProperty('user');
+            expect(response.body.data).toHaveProperty('accessToken');
+            expect(response.body.data).toHaveProperty('user');
         });
 
         it('should return 401 for wrong password', async () => {
@@ -156,9 +170,9 @@ describe('AuthController (e2e)', () => {
             const response = await authRequest(app, token).get('/api/v1/auth/me');
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty('email');
-            expect(response.body).toHaveProperty('fullName');
-            expect(response.body).toHaveProperty('role');
+            expect(response.body.data).toHaveProperty('email');
+            expect(response.body.data).toHaveProperty('fullName');
+            expect(response.body.data).toHaveProperty('role');
         });
 
         it('should return 401 without token', async () => {

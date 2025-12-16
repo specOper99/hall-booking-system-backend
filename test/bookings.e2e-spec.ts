@@ -159,8 +159,8 @@ describe('BookingsController (e2e)', () => {
 
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('data');
-            expect(response.body.data).toHaveProperty('items');
-            expect(Array.isArray(response.body.data.items)).toBe(true);
+            expect(response.body.data).toHaveProperty('data');
+            expect(Array.isArray(response.body.data.data)).toBe(true);
         });
 
         it('should return 403 for regular user', async () => {

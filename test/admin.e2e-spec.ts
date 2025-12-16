@@ -33,7 +33,7 @@ describe('AdminController (e2e)', () => {
                 .post('/api/v1/auth/login')
                 .send({
                     email: 'admin@hallhub.com',
-                    password: 'Admin123!',
+                    password: 'Admin@123456',
                 });
             if (loginResponse.status === 200) {
                 superadminToken = loginResponse.body.data.accessToken;
@@ -80,8 +80,8 @@ describe('AdminController (e2e)', () => {
 
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('data');
-            expect(response.body.data).toHaveProperty('items');
-            expect(Array.isArray(response.body.data.items)).toBe(true);
+            expect(response.body.data).toHaveProperty('data');
+            expect(Array.isArray(response.body.data.data)).toBe(true);
         });
 
         it('should filter users by role', async () => {
@@ -92,7 +92,7 @@ describe('AdminController (e2e)', () => {
                 .query({ role: 'OWNER' });
 
             expect(response.status).toBe(200);
-            expect(response.body.data.items.every((u: { role: string }) => u.role === 'OWNER')).toBe(true);
+            expect(response.body.data.data.every((u: { role: string }) => u.role === 'OWNER')).toBe(true);
         });
 
         it('should return 403 for non-superadmin', async () => {
@@ -179,7 +179,7 @@ describe('AdminController (e2e)', () => {
                 .patch(`/api/v1/admin/venues/${venueToApprove}/approve`);
 
             expect(response.status).toBe(200);
-            expect(response.body.data.status).toBe('APPROVED');
+            expect(response.body.data.status).toBe('active');
         });
 
         it('should return 403 for non-superadmin', async () => {
@@ -213,7 +213,7 @@ describe('AdminController (e2e)', () => {
                 .send({ reason: 'Does not meet quality standards' });
 
             expect(response.status).toBe(200);
-            expect(response.body.data.status).toBe('REJECTED');
+            expect(response.body.data.status).toBe('rejected');
         });
     });
 

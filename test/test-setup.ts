@@ -1,8 +1,10 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ClassSerializerInterceptor, INestApplication, ValidationPipe } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module.js';
+import { AllExceptionsFilter, TransformInterceptor } from '../src/common/index.js';
 import { UserRole } from '../src/users/enums/user-role.enum.js';
 
 // Test user data
@@ -61,6 +63,15 @@ export async function createTestApp(): Promise<INestApplication> {
         }),
     );
 
+    // Global exception filter (same as main.ts)
+    app.useGlobalFilters(new AllExceptionsFilter());
+
+    // Global response interceptors (same as main.ts)
+    app.useGlobalInterceptors(
+        new ClassSerializerInterceptor(app.get(Reflector)),
+        new TransformInterceptor(),
+    );
+
     await app.init();
     return app;
 }
@@ -77,8 +88,8 @@ export async function registerAndLogin(
 
     if (loginResponse.status === 200) {
         return {
-            token: loginResponse.body.accessToken,
-            user: loginResponse.body.user,
+            token: loginResponse.body.data.accessToken,
+            user: loginResponse.body.data.user,
         };
     }
 
@@ -89,8 +100,8 @@ export async function registerAndLogin(
 
     if (registerResponse.status === 201) {
         return {
-            token: registerResponse.body.accessToken,
-            user: registerResponse.body.user,
+            token: registerResponse.body.data.accessToken,
+            user: registerResponse.body.data.user,
         };
     }
 
