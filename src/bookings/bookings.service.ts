@@ -102,6 +102,10 @@ export class BookingsService {
         ownerId: string,
         query: BookingQueryDto,
     ): Promise<PaginatedBookings> {
+        const page = query.page || 1;
+        const limit = query.limit || 10;
+        const skip = (page - 1) * limit;
+
         const qb = this.bookingRepository
             .createQueryBuilder('booking')
             .innerJoinAndSelect('booking.hall', 'hall')
@@ -130,16 +134,19 @@ export class BookingsService {
             });
         }
 
-        qb.orderBy('booking.startTime', 'DESC');
+        qb.orderBy('booking.startTime', 'DESC')
+            .skip(skip)
+            .take(limit);
 
         const [data, total] = await qb.getManyAndCount();
+        const totalPages = Math.ceil(total / limit);
 
         return {
             data,
             total,
-            page: 1,
-            limit: total,
-            totalPages: 1,
+            page,
+            limit,
+            totalPages,
         };
     }
 

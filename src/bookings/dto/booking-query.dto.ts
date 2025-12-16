@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { BookingStatus } from '../enums/booking-status.enum.js';
 
 export class BookingQueryDto {
@@ -27,4 +28,19 @@ export class BookingQueryDto {
     @IsOptional()
     @IsString()
     endDate?: string;
+
+    @ApiPropertyOptional({ description: 'Page number (1-indexed)', default: 1 })
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    page?: number = 1;
+
+    @ApiPropertyOptional({ description: 'Number of items per page', default: 10 })
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    @Max(100)
+    limit?: number = 10;
 }
