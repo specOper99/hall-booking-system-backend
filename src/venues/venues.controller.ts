@@ -83,7 +83,7 @@ export class VenuesController {
         @CurrentUser() user: User,
         @Body() updateVenueDto: UpdateVenueDto,
     ): Promise<Venue> {
-        return this.venuesService.update(id, user.id, updateVenueDto);
+        return this.venuesService.update(id, user.id, user.role, updateVenueDto);
     }
 
     @Delete(':id')
@@ -98,7 +98,7 @@ export class VenuesController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() user: User,
     ): Promise<{ message: string }> {
-        await this.venuesService.remove(id, user.id);
+        await this.venuesService.remove(id, user.id, user.role);
         return { message: 'Venue deleted successfully' };
     }
 }

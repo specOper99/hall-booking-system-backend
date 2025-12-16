@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
+import { UserRole } from '../users/enums/user-role.enum.js';
 import { CreateVenueDto, UpdateVenueDto, VenueQueryDto } from './dto/index.js';
 import { Venue } from './entities/venue.entity.js';
 
@@ -72,25 +73,30 @@ export class VenuesService {
     async update(
         id: string,
         userId: string,
+        userRole: UserRole,
         updateVenueDto: UpdateVenueDto,
     ): Promise<Venue> {
         const venue = await this.findOne(id);
 
-        this.verifyOwnership(venue, userId);
+        this.verifyOwnership(venue, userId, userRole);
 
         Object.assign(venue, updateVenueDto);
         return this.venueRepository.save(venue);
     }
 
-    async remove(id: string, userId: string): Promise<void> {
+    async remove(id: string, userId: string, userRole: UserRole): Promise<void> {
         const venue = await this.findOne(id);
 
-        this.verifyOwnership(venue, userId);
+        this.verifyOwnership(venue, userId, userRole);
 
         await this.venueRepository.remove(venue);
     }
 
-    private verifyOwnership(venue: Venue, userId: string): void {
+    private verifyOwnership(venue: Venue, userId: string, userRole: UserRole): void {
+        // Super admins can modify any venue
+        if (userRole === UserRole.SUPERADMIN) {
+            return;
+        }
         if (venue.ownerId !== userId) {
             throw new ForbiddenException(
                 'You do not have permission to modify this venue',

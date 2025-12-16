@@ -16,6 +16,7 @@ exports.VenuesService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const user_role_enum_js_1 = require("../users/enums/user-role.enum.js");
 const venue_entity_js_1 = require("./entities/venue.entity.js");
 let VenuesService = class VenuesService {
     venueRepository;
@@ -60,18 +61,21 @@ let VenuesService = class VenuesService {
             order: { createdAt: 'DESC' },
         });
     }
-    async update(id, userId, updateVenueDto) {
+    async update(id, userId, userRole, updateVenueDto) {
         const venue = await this.findOne(id);
-        this.verifyOwnership(venue, userId);
+        this.verifyOwnership(venue, userId, userRole);
         Object.assign(venue, updateVenueDto);
         return this.venueRepository.save(venue);
     }
-    async remove(id, userId) {
+    async remove(id, userId, userRole) {
         const venue = await this.findOne(id);
-        this.verifyOwnership(venue, userId);
+        this.verifyOwnership(venue, userId, userRole);
         await this.venueRepository.remove(venue);
     }
-    verifyOwnership(venue, userId) {
+    verifyOwnership(venue, userId, userRole) {
+        if (userRole === user_role_enum_js_1.UserRole.SUPERADMIN) {
+            return;
+        }
         if (venue.ownerId !== userId) {
             throw new common_1.ForbiddenException('You do not have permission to modify this venue');
         }

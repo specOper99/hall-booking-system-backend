@@ -41,10 +41,10 @@ let VenuesController = class VenuesController {
         return this.venuesService.findOne(id);
     }
     async update(id, user, updateVenueDto) {
-        return this.venuesService.update(id, user.id, updateVenueDto);
+        return this.venuesService.update(id, user.id, user.role, updateVenueDto);
     }
     async remove(id, user) {
-        await this.venuesService.remove(id, user.id);
+        await this.venuesService.remove(id, user.id, user.role);
         return { message: 'Venue deleted successfully' };
     }
 };
